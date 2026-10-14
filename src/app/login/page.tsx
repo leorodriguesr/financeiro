@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/login-form";
+import { InstallHint } from "@/components/pwa";
 
 export const metadata: Metadata = { title: "Entrar" };
 
@@ -34,9 +35,10 @@ export default function LoginPage() {
           <p className="font-serif text-4xl lg:hidden">Casa</p>
           <h1 className="mt-3 font-serif text-4xl tracking-tight lg:mt-0">Entrar</h1>
           <p className="mt-2 mb-8 text-sm leading-6 text-muted">
-            A conta da casa. Os números ficam só neste aplicativo.
+            A conta da casa. Depois de entrar, o acesso fica salvo neste aparelho.
           </p>
           <LoginForm defaultEmail={process.env.ADMIN_EMAIL ?? ""} />
+          <InstallHint />
         </div>
       </section>
     </div>

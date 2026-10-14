@@ -1,26 +1,34 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { readSession, SESSION_COOKIE } from "@/lib/session";
+import { readClaims, SESSION_COOKIE, sessionCookieOptions, sessionNeedsRenewal, signSession } from "@/lib/session";
+
+const PUBLIC_FILE = /^\/(?:sw\.js|manifest\.webmanifest|apple-icon|icons\/|icon)/;
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (pathname === "/sair" || pathname === "/icon" || pathname.startsWith("/icon")) {
+  if (pathname === "/sair" || PUBLIC_FILE.test(pathname)) {
     return NextResponse.next();
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const userId = token ? await readSession(token) : null;
+  const claims = token ? await readClaims(token) : null;
 
   if (pathname === "/login") {
-    if (userId) return NextResponse.redirect(new URL("/", request.url));
-    return NextResponse.next();
+    if (!claims) return NextResponse.next();
+    return renew(NextResponse.redirect(new URL("/", request.url)), claims);
   }
 
-  if (!userId) {
+  if (!claims) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return NextResponse.next();
+  return renew(NextResponse.next(), claims);
+}
+
+async function renew(response: NextResponse, claims: { userId: string; expiresAt: number }) {
+  if (!sessionNeedsRenewal(claims.expiresAt)) return response;
+  response.cookies.set(SESSION_COOKIE, await signSession(claims.userId), sessionCookieOptions());
+  return response;
 }
 
 export const config = {
